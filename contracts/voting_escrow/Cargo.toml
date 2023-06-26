@@ -23,22 +23,22 @@ crate-type = ["cdylib", "rlib"]
 backtraces = ["cosmwasm-std/backtraces"]
 
 [dependencies]
-cw2 = "0.8"
-cw20 = "0.8"
-cw20-base = { version = "0.8", features = ["library"] }
-cosmwasm-std = { version = "0.16" }
-cw-storage-plus = { version = "0.8.0", features = ["iterator"] }
+cw2 = "0.15"
+cw20 = "0.15"
+cw20-base = { version = "0.15", features = ["library"] }
+cosmwasm-std = "1.1"
+cw-storage-plus = "0.15"
 schemars = "0.8.1"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
-terra-cosmwasm = { version = "2.2.0" }
+classic-bindings = "0.1.1"
 thiserror = { version = "1.0.20" }
-astroport = { git = "https://github.com/astroport-fi/astroport.git", package = "astroport", branch = "terra_classic"}
+astroport = { git = "https://github.com/astroport-fi/astroport.git", branch = "terra_classic"}
 astroport-governance = { path = "../../packages/astroport-governance", default-features = false, version = "1.0.0" }
 
 [dev-dependencies]
-cosmwasm-schema = { version = "0.16.0" }
-terra-multi-test = { git = "https://github.com/astroport-fi/terra-plus.git" }
-astroport-token = { git = "https://github.com/astroport-fi/astroport.git", package = "astroport-token", branch = "terra_classic" }
-astroport-staking = { git = "https://github.com/astroport-fi/astroport.git", package = "astroport-staking", branch = "terra_classic" }
+cosmwasm-schema = "1.1"
+cw-multi-test = "0.15"
+astroport-token = {git = "https://github.com/classic-terra/astroport-core.git", branch = "terra_classic_invictus"}
+astroport-staking = {git = "https://github.com/classic-terra/astroport-core.git", branch = "terra_classic_invictus"}
 anyhow = "1"
 proptest = "1.0.0"
