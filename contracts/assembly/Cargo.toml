@@ -26,8 +26,8 @@ thiserror = { version = "1.0.20" }
 cosmwasm-schema = "1.1"
 cw-multi-test = "0.15"
 astroport-token = {git = "https://github.com/classic-terra/astroport-core.git", branch = "terra_classic_invictus", package = "astroport-token"}
-astroport-xastro-token = {git = "https://github.com/classic-terra/astroport.git", branch = "terra_classic_invictus", package = "astroport-xastro-token"}
+astroport-xastro-token = {git = "https://github.com/classic-terra/astroport-core.git", branch = "terra_classic_invictus", package = "astroport-xastro-token"}
 voting-escrow = { path= "../voting_escrow", default-features = false, version = "1.0.0" }
-astroport-staking = {git = "https://github.com/classic-terra/astroport.git", branch = "terra_classic_invictus", package = "astroport-staking"}
+astroport-staking = {git = "https://github.com/classic-terra/astroport-core.git", branch = "terra_classic_invictus", package = "astroport-staking"}
 builder-unlock = {path = "../builder_unlock", default-features = false, version = "1.0.0"}
 anyhow = "1"

@@ -32,7 +32,7 @@ schemars = "0.8.1"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 classic-bindings = "0.1.1"
 thiserror = { version = "1.0.20" }
-astroport = { git = "https://github.com/astroport-fi/astroport.git", branch = "terra_classic"}
+astroport = {git = "https://github.com/classic-terra/astroport-core.git", branch = "terra_classic_invictus"}
 astroport-governance = { path = "../../packages/astroport-governance", default-features = false, version = "1.0.0" }
 
 [dev-dependencies]
