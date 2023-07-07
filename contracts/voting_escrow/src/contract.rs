@@ -2,13 +2,14 @@ use astroport::asset::addr_validate_to_lower;
 use astroport::common::{claim_ownership, drop_ownership_proposal, propose_new_owner};
 use astroport::DecimalCheckedOps;
 use astroport_governance::utils::{get_period, get_periods_count, EPOCH_START, WEEK};
+use classic_bindings::TerraQuery;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
     from_binary, to_binary, Addr, Binary, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response,
     StdError, StdResult, Uint128, WasmMsg,
 };
-use cw2::set_contract_version;
+use cw2::{set_contract_version, get_contract_version};
 use cw20::{
     BalanceResponse, Cw20ExecuteMsg, Cw20ReceiveMsg, Logo, LogoInfo, MarketingInfoResponse,
     TokenInfoResponse,
@@ -17,7 +18,6 @@ use cw20_base::contract::{
     execute_update_marketing, execute_upload_logo, query_download_logo, query_marketing_info,
 };
 use cw20_base::state::{MinterData, TokenInfo, LOGO, MARKETING_INFO, TOKEN_INFO};
-use cw_storage_plus::U64Key;
 
 use astroport_governance::voting_escrow::{
     ConfigResponse, Cw20HookMsg, ExecuteMsg, InstantiateMsg, LockInfoResponse, MigrateMsg,
@@ -76,7 +76,7 @@ pub fn instantiate(
     };
     HISTORY.save(
         deps.storage,
-        (env.contract.address.clone(), U64Key::new(cur_period)),
+        (env.contract.address.clone(), cur_period),
         &point,
     )?;
     BLACKLIST.save(deps.storage, &vec![])?;
@@ -139,7 +139,7 @@ pub fn instantiate(
 /// * **ExecuteMsg::ClaimOwnership {}** Claims contract ownership.
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
-    deps: DepsMut,
+    deps: DepsMut<TerraQuery>,
     env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
@@ -226,7 +226,7 @@ fn checkpoint_total(
     new_slope: Uint128,
 ) -> StdResult<()> {
     let cur_period = get_period(env.block.time.seconds())?;
-    let cur_period_key = U64Key::new(cur_period);
+    let cur_period_key = cur_period;
     let contract_addr = env.contract.address;
     let add_voting_power = add_voting_power.unwrap_or_default();
 
@@ -249,7 +249,7 @@ fn checkpoint_total(
                 };
                 HISTORY.save(
                     deps.storage,
-                    (contract_addr.clone(), U64Key::new(recalc_period)),
+                    (contract_addr.clone(), recalc_period),
                     &point,
                 )?
             }
@@ -300,20 +300,19 @@ fn checkpoint_total(
 ///
 /// * **new_end** is an object of type [`Option<u64>`]. This is a new lock time for the user's vxASTRO position.
 fn checkpoint(
-    mut deps: DepsMut,
+    mut deps: DepsMut<TerraQuery>,
     env: Env,
     addr: Addr,
     add_amount: Option<Uint128>,
     new_end: Option<u64>,
 ) -> StdResult<()> {
     let cur_period = get_period(env.block.time.seconds())?;
-    let cur_period_key = U64Key::new(cur_period);
     let add_amount = add_amount.unwrap_or_default();
     let mut old_slope = Default::default();
     let mut add_voting_power = Uint128::zero();
 
     // Get last user checkpoint
-    let last_checkpoint = fetch_last_checkpoint(deps.as_ref(), &addr, &cur_period_key)?;
+    let last_checkpoint = fetch_last_checkpoint(deps.as_ref(), &addr, cur_period)?;
     let new_point = if let Some((_, point)) = last_checkpoint {
         let end = new_end.unwrap_or(point.end);
         let dt = end.saturating_sub(cur_period);
@@ -322,7 +321,7 @@ fn checkpoint(
             if end > point.end && add_amount.is_zero() {
                 // This is extend_lock_time. Recalculating user's voting power
                 let mut lock = LOCKED.load(deps.storage, addr.clone())?;
-                let mut new_voting_power = calc_coefficient(dt).checked_mul(lock.amount)?;
+                let mut new_voting_power = calc_coefficient(dt).checked_mul_uint128(lock.amount)?;
                 let slope = adjust_vp_and_slope(&mut new_voting_power, dt)?;
                 // new_voting_power should always be >= current_power. saturating_sub is used for extra safety
                 add_voting_power = new_voting_power.saturating_sub(current_power);
@@ -331,7 +330,7 @@ fn checkpoint(
                 slope
             } else {
                 // This is an increase in the user's lock amount
-                let raw_add_voting_power = calc_coefficient(dt).checked_mul(add_amount)?;
+                let raw_add_voting_power = calc_coefficient(dt).checked_mul_uint128(add_amount)?;
                 let mut new_voting_power = current_power.checked_add(raw_add_voting_power)?;
                 let slope = adjust_vp_and_slope(&mut new_voting_power, dt)?;
                 // new_voting_power should always be >= current_power. saturating_sub is used for extra safety
@@ -359,7 +358,7 @@ fn checkpoint(
         let end =
             new_end.ok_or_else(|| StdError::generic_err("Checkpoint initialization error"))?;
         let dt = end - cur_period;
-        add_voting_power = calc_coefficient(dt).checked_mul(add_amount)?;
+        add_voting_power = calc_coefficient(dt).checked_mul_uint128(add_amount)?;
         let slope = adjust_vp_and_slope(&mut add_voting_power, dt)?;
         Point {
             power: add_voting_power,
@@ -396,7 +395,7 @@ fn checkpoint(
 ///
 /// * **cw20_msg** is an object of type [`Cw20ReceiveMsg`]. This is the CW20 message to process.
 fn receive_cw20(
-    deps: DepsMut,
+    deps: DepsMut<TerraQuery>,
     env: Env,
     info: MessageInfo,
     cw20_msg: Cw20ReceiveMsg,
@@ -435,7 +434,7 @@ fn receive_cw20(
 ///
 /// * **time** is an object of type [`u64`]. This is the duration of the lock.
 fn create_lock(
-    deps: DepsMut,
+    deps: DepsMut<TerraQuery>,
     env: Env,
     user: Addr,
     amount: Uint128,
@@ -511,7 +510,7 @@ fn deposit_for(
 /// * **env** is an object of type [`Env`].
 ///
 /// * **info** is an object of type [`MessageInfo`]. This is the withdrawal message coming from the xASTRO token contract.
-fn withdraw(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response, ContractError> {
+fn withdraw(deps: DepsMut<TerraQuery>, env: Env, info: MessageInfo) -> Result<Response, ContractError> {
     let sender = info.sender;
     // 'LockDoesntExist' is either a lock does not exist in LOCKED or a lock exits but lock.amount == 0
     let mut lock = LOCKED
@@ -538,7 +537,7 @@ fn withdraw(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response, Cont
         // We need to checkpoint and eliminate the slope influence on a future lock
         HISTORY.save(
             deps.storage,
-            (sender, U64Key::new(cur_period)),
+            (sender, cur_period),
             &Point {
                 power: Uint128::zero(),
                 start: cur_period,
@@ -573,7 +572,7 @@ fn withdraw(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response, Cont
 ///
 /// * **time** is an object of type [`u64`]. This is the increase in lock time applied to the staker's position.
 fn extend_lock_time(
-    deps: DepsMut,
+    deps: DepsMut<TerraQuery>,
     env: Env,
     info: MessageInfo,
     time: u64,
@@ -647,16 +646,15 @@ fn update_blacklist(
     }
 
     let cur_period = get_period(env.block.time.seconds())?;
-    let cur_period_key = U64Key::new(cur_period);
     let mut reduce_total_vp = Uint128::zero(); // accumulator for decreasing total voting power
     let mut old_slopes = Uint128::zero(); // accumulator for old slopes
     for addr in append.iter() {
-        let last_checkpoint = fetch_last_checkpoint(deps.as_ref(), addr, &cur_period_key)?;
+        let last_checkpoint = fetch_last_checkpoint(deps.as_ref(), addr, cur_period)?;
         if let Some((_, point)) = last_checkpoint {
             // We need to checkpoint with zero power and zero slope
             HISTORY.save(
                 deps.storage,
-                (addr.clone(), cur_period_key.clone()),
+                (addr.clone(), cur_period),
                 &Point {
                     power: Uint128::zero(),
                     slope: Default::default(),
@@ -788,7 +786,7 @@ fn get_user_lock_info(deps: Deps, env: Env, user: String) -> StdResult<LockInfoR
     let addr = addr_validate_to_lower(deps.api, &user)?;
     if let Some(lock) = LOCKED.may_load(deps.storage, addr.clone())? {
         let cur_period = get_period(env.block.time.seconds())?;
-        let slope = fetch_last_checkpoint(deps, &addr, &U64Key::new(cur_period))?
+        let slope = fetch_last_checkpoint(deps, &addr, cur_period)?
             .map(|(_, point)| point.slope)
             .unwrap_or_default();
         let resp = LockInfoResponse {
@@ -839,9 +837,8 @@ fn get_user_voting_power_at_period(
     period: u64,
 ) -> StdResult<VotingPowerResponse> {
     let user = addr_validate_to_lower(deps.api, &user)?;
-    let period_key = U64Key::new(period);
 
-    let last_checkpoint = fetch_last_checkpoint(deps, &user, &period_key)?;
+    let last_checkpoint = fetch_last_checkpoint(deps, &user, period)?;
 
     if let Some(point) = last_checkpoint.map(|(_, point)| point) {
         // The voting power point at the specified `time` was found
@@ -906,9 +903,7 @@ fn get_total_voting_power_at_period(
     env: Env,
     period: u64,
 ) -> StdResult<VotingPowerResponse> {
-    let period_key = U64Key::new(period);
-
-    let last_checkpoint = fetch_last_checkpoint(deps, &env.contract.address, &period_key)?;
+    let last_checkpoint = fetch_last_checkpoint(deps, &env.contract.address, period)?;
 
     let point = last_checkpoint.map_or(
         Point {
@@ -955,17 +950,4 @@ fn query_token_info(deps: Deps, env: Env) -> StdResult<TokenInfoResponse> {
         total_supply: total_vp.voting_power,
     };
     Ok(res)
-}
-
-/// ## Description
-/// Used for contract migration. Returns a default object of type [`Response`].
-/// ## Params
-/// * **_deps** is an object of type [`DepsMut`].
-///
-/// * **_env** is an object of type [`Env`].
-///
-/// * **_msg** is an object of type [`MigrateMsg`].
-#[cfg_attr(not(feature = "library"), entry_point)]
-pub fn migrate(_deps: DepsMut, _env: Env, _msg: MigrateMsg) -> Result<Response, ContractError> {
-    Ok(Response::default())
 }

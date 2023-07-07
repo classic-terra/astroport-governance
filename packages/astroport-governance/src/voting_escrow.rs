@@ -1,6 +1,7 @@
 use crate::voting_escrow::QueryMsg::{
     LockInfo, TotalVotingPower, TotalVotingPowerAt, UserVotingPower, UserVotingPowerAt,
 };
+use classic_bindings::TerraQuery;
 use cosmwasm_std::{Addr, Decimal, QuerierWrapper, StdResult, Uint128};
 use cw20::{Cw20ReceiveMsg, Logo};
 use schemars::JsonSchema;
@@ -145,7 +146,7 @@ pub struct MigrateMsg {}
 /// ## Description
 /// Queries current user's voting power from the voting escrow contract.
 pub fn get_voting_power(
-    querier: QuerierWrapper,
+    querier: QuerierWrapper<TerraQuery>,
     escrow_addr: &Addr,
     user: &Addr,
 ) -> StdResult<Uint128> {
@@ -202,7 +203,7 @@ pub fn get_total_voting_power_at(
 /// ## Description
 /// Queries user's lockup information from the voting escrow contract.
 pub fn get_lock_info(
-    querier: QuerierWrapper,
+    querier: QuerierWrapper<TerraQuery>,
     escrow_addr: &Addr,
     user: &Addr,
 ) -> StdResult<LockInfoResponse> {

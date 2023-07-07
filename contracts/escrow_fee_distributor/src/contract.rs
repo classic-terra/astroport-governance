@@ -1,3 +1,4 @@
+use classic_bindings::TerraQuery;
 use cosmwasm_std::{
     attr, entry_point, to_binary, Addr, Attribute, Binary, Deps, DepsMut, Env, MessageInfo, Order,
     Response, StdError, StdResult, Uint128,
@@ -21,7 +22,7 @@ use astroport_governance::voting_escrow::{
 use cw20::Cw20ReceiveMsg;
 
 use cw2::set_contract_version;
-use cw_storage_plus::{Bound, PrimaryKey, U64Key};
+use cw_storage_plus::{Bound, PrimaryKey};
 
 /// Contract name that is used for migration.
 const CONTRACT_NAME: &str = "astroport-escrow_fee_distributor";
@@ -86,7 +87,7 @@ pub fn instantiate(
 ///  will be updated in case of success.
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
-    deps: DepsMut,
+    deps: DepsMut<TerraQuery>,
     env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
@@ -141,7 +142,7 @@ pub fn execute(
 ///
 /// * **cw20_msg** is an object of type [`Cw20ReceiveMsg`]. This is the CW20 message to process.
 fn receive_cw20(
-    deps: DepsMut,
+    deps: DepsMut<TerraQuery>,
     env: Env,
     info: MessageInfo,
     cw20_msg: Cw20ReceiveMsg,
@@ -155,7 +156,7 @@ fn receive_cw20(
 
     REWARDS_PER_WEEK.update(
         deps.storage,
-        U64Key::new(curr_period),
+        curr_period,
         |period| -> StdResult<_> {
             if let Some(tokens_amount) = period {
                 Ok(tokens_amount + cw20_msg.amount)
@@ -180,7 +181,7 @@ fn receive_cw20(
 ///
 /// * **recipient** This is the address that will receive the ASTRO fees.
 pub fn claim(
-    mut deps: DepsMut,
+    mut deps: DepsMut<TerraQuery>,
     env: Env,
     info: MessageInfo,
     recipient: Option<String>,
@@ -225,7 +226,7 @@ pub fn claim(
 ///
 /// * **receivers** is a vector with objects of type [`String`]. This is the list of addresses that will receive the claimed ASTRO.
 fn claim_many(
-    mut deps: DepsMut,
+    mut deps: DepsMut<TerraQuery>,
     env: Env,
     receivers: Vec<String>,
 ) -> Result<Response, ContractError> {
@@ -281,7 +282,7 @@ fn claim_many(
 /// * **account** is an object of type [`Addr`]. This is the account for which we calculate the amount of ASTRO fees available to claim.
 ///
 /// * **config** is an object of type [`Config`]. This is the fee distributor contract configuration.
-fn calc_claim_amount(deps: DepsMut, env: Env, account: Addr, config: Config) -> StdResult<Uint128> {
+fn calc_claim_amount(deps: DepsMut<TerraQuery>, env: Env, account: Addr, config: Config) -> StdResult<Uint128> {
     let user_lock_info: LockInfoResponse = deps.querier.query_wasm_smart(
         &config.voting_escrow_addr,
         &VotingQueryMsg::LockInfo {
@@ -351,13 +352,13 @@ fn calc_claim_amount(deps: DepsMut, env: Env, account: Addr, config: Config) -> 
 ///
 /// * **total_vp** is an object of type [`Uint128`]. This is the total voting power for the specified period.
 fn calculate_reward(
-    deps: Deps,
+    deps: Deps<TerraQuery>,
     period: u64,
     user_vp: Uint128,
     total_vp: Uint128,
 ) -> StdResult<Uint128> {
     let rewards_per_week = REWARDS_PER_WEEK
-        .may_load(deps.storage, U64Key::from(period))?
+        .may_load(deps.storage, period)?
         .unwrap_or_default();
 
     Ok(user_vp.multiply_ratio(rewards_per_week, total_vp))
@@ -375,7 +376,7 @@ fn calculate_reward(
 ///
 /// * **is_claim_disabled** is an [`Option`] of type [`bool`]. This determines whether reward claims are disabled or not.
 fn update_config(
-    deps: DepsMut,
+    deps: DepsMut<TerraQuery>,
     info: MessageInfo,
     claim_many_limit: Option<u64>,
     is_claim_disabled: Option<bool>,
@@ -425,7 +426,7 @@ fn update_config(
 /// * **QueryMsg::AvailableRewardPerWeek { start_after, limit }** Returns a vector with total amounts
 /// of ASTRO distributed as rewards every week to stakers.
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
+pub fn query(deps: Deps<TerraQuery>, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
         QueryMsg::UserReward { user, timestamp } => {
             to_binary(&query_user_reward(deps, env, user, timestamp)?)
@@ -453,14 +454,14 @@ const DEFAULT_LIMIT: u64 = 10;
 ///
 /// * **limit** is an [`Option`] of type [`Uint128`]. This is the max amount of entries to return.
 fn query_available_reward_per_week(
-    deps: Deps,
+    deps: Deps<TerraQuery>,
     start_after: Option<u64>,
     limit: Option<u64>,
 ) -> StdResult<Vec<Uint128>> {
     let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
     let start = if let Some(timestamp) = start_after {
-        let bound = U64Key::from(get_period(timestamp)?).joined_key();
-        Some(Bound::Exclusive(bound))
+        let bound = get_period(timestamp)?.joined_key();
+        Some(Bound::exclusive(bound))
     } else {
         None
     };
@@ -482,7 +483,7 @@ fn query_available_reward_per_week(
 /// * **user** is an object of type [`String`]. This is the user for which we return the amount of rewards.
 ///
 /// * **timestamp** is a parameter of type [`u64`]. This is the timestamp at which we fetch the user's reward amount.
-fn query_user_reward(deps: Deps, _env: Env, user: String, timestamp: u64) -> StdResult<Uint128> {
+fn query_user_reward(deps: Deps<TerraQuery>, _env: Env, user: String, timestamp: u64) -> StdResult<Uint128> {
     let config = CONFIG.load(deps.storage)?;
     let user_voting_power: VotingPowerResponse = deps.querier.query_wasm_smart(
         &config.voting_escrow_addr,
@@ -515,7 +516,7 @@ fn query_user_reward(deps: Deps, _env: Env, user: String, timestamp: u64) -> Std
 /// Returns the contract configuration using a [`ConfigResponse`] object.
 /// ## Params
 /// * **deps** is an object of type [`Deps`].
-pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
+pub fn query_config(deps: Deps<TerraQuery>) -> StdResult<ConfigResponse> {
     let config: Config = CONFIG.load(deps.storage)?;
 
     let resp = ConfigResponse {

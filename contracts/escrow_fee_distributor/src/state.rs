@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use astroport::common::OwnershipProposal;
 
 use cosmwasm_std::{Addr, Uint128};
-use cw_storage_plus::{Item, Map, U64Key};
+use cw_storage_plus::{Item, Map};
 
 /// ## Description
 /// This structure stores the main parameters for the distributor contract.
@@ -28,7 +28,7 @@ pub const CONFIG: Item<Config> = Item::new("config");
 
 /// ## Description
 /// Contains information about weekly distributed rewards.
-pub const REWARDS_PER_WEEK: Map<U64Key, Uint128> = Map::new("rewards_per_week");
+pub const REWARDS_PER_WEEK: Map<u64, Uint128> = Map::new("rewards_per_week");
 
 /// ## Description
 /// Contains information about the last week of commission issuance.

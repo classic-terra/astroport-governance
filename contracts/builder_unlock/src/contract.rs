@@ -1,6 +1,7 @@
 use std::string::FromUtf8Error;
 
 use astroport::common::{claim_ownership, drop_ownership_proposal, propose_new_owner};
+use classic_bindings::TerraQuery;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 
@@ -34,7 +35,7 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 /// Returns a [`Response`] with the specified attributes if the operation was successful,
 /// or a [`ContractError`] if the contract was not created.
 /// ## Params
-/// * **deps** is an object of type [`DepsMut`].
+/// * **deps** is an object of type [`DepsMut<TerraQuery>`].
 ///
 /// * **_env** is an object of type [`Env`]
 ///
@@ -43,7 +44,7 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 /// * **msg**  is a message of type [`InstantiateMsg`] which contains the parameters used for creating a contract.
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
-    deps: DepsMut,
+    deps: DepsMut<TerraQuery>,
     _env: Env,
     _info: MessageInfo,
     msg: InstantiateMsg,
@@ -93,7 +94,7 @@ pub fn instantiate(
 ///
 /// * **ExecuteMsg::UpdateConfig** Update contract configuration.
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn execute(deps: DepsMut, env: Env, info: MessageInfo, msg: ExecuteMsg) -> StdResult<Response> {
+pub fn execute(deps: DepsMut<TerraQuery>, env: Env, info: MessageInfo, msg: ExecuteMsg) -> StdResult<Response> {
     match msg {
         ExecuteMsg::Receive(cw20_msg) => execute_receive_cw20(deps, info, cw20_msg),
         ExecuteMsg::Withdraw {} => execute_withdraw(deps, env, info),
@@ -164,13 +165,13 @@ pub fn execute(deps: DepsMut, env: Env, info: MessageInfo, msg: ExecuteMsg) -> S
 /// If the template is not found in the received message, then a [`ContractError`] is returned,
 /// otherwise it returns a [`Response`] with the specified attributes if the operation was successful.
 /// ## Params
-/// * **deps** is an object of type [`DepsMut`].
+/// * **deps** is an object of type [`DepsMut<TerraQuery>`].
 ///
 /// * **info** is an object of type [`MessageInfo`].
 ///
 /// * **cw20_msg** is an object of type [`Cw20ReceiveMsg`]. This is the CW20 message to process.
 fn execute_receive_cw20(
-    deps: DepsMut,
+    deps: DepsMut<TerraQuery>,
     info: MessageInfo,
     cw20_msg: Cw20ReceiveMsg,
 ) -> StdResult<Response> {
@@ -239,7 +240,7 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
 /// ## Description
 /// Admin function facilitating the creation of new allocations.
 /// ## Params
-/// * **deps** is an object of type [`DepsMut`].
+/// * **deps** is an object of type [`DepsMut<TerraQuery>`].
 ///
 /// * **creator** is an object of type [`String`]. This is the allocations creator (the contract admin).
 ///
@@ -249,7 +250,7 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
 ///
 /// * **deposit_amount** is a vector of tuples of type [(`String`, `AllocationParams`)]. New allocations being created.
 fn execute_create_allocations(
-    deps: DepsMut,
+    deps: DepsMut<TerraQuery>,
     creator: String,
     deposit_token: Addr,
     deposit_amount: Uint128,
@@ -306,12 +307,12 @@ fn execute_create_allocations(
 /// ## Description
 /// Allow allocation recipients to withdraw unlocked ASTRO.
 /// ## Params
-/// * **deps** is an object of type [`DepsMut`].
+/// * **deps** is an object of type [`DepsMut<TerraQuery>`].
 ///
 /// * **env** is an object of type [`Env`].
 ///
 /// * **info** is an object of type [`MessageInfo`].
-fn execute_withdraw(deps: DepsMut, env: Env, info: MessageInfo) -> StdResult<Response> {
+fn execute_withdraw(deps: DepsMut<TerraQuery>, env: Env, info: MessageInfo) -> StdResult<Response> {
     let config = CONFIG.load(deps.storage)?;
     let mut state = STATE.load(deps.storage)?;
 
@@ -356,13 +357,13 @@ fn execute_withdraw(deps: DepsMut, env: Env, info: MessageInfo) -> StdResult<Res
 /// ## Description
 /// Allows the current allocation receiver to propose a new receiver.
 /// ## Params
-/// * **deps** is an object of type [`DepsMut`].
+/// * **deps** is an object of type [`DepsMut<TerraQuery>`].
 ///
 /// * **info** is an object of type [`MessageInfo`].
 ///
 /// * **new_receiver** is an object of type [`String`]. Newly proposed receiver for the allocation.
 fn execute_propose_new_receiver(
-    deps: DepsMut,
+    deps: DepsMut<TerraQuery>,
     info: MessageInfo,
     new_receiver: String,
 ) -> StdResult<Response> {
@@ -395,10 +396,10 @@ fn execute_propose_new_receiver(
 /// ## Description
 /// Drop the newly proposed receiver for a specific allocation.
 /// ## Params
-/// * **deps** is an object of type [`DepsMut`].
+/// * **deps** is an object of type [`DepsMut<TerraQuery>`].
 ///
 /// * **info** is an object of type [`MessageInfo`].
-fn execute_drop_new_receiver(deps: DepsMut, info: MessageInfo) -> StdResult<Response> {
+fn execute_drop_new_receiver(deps: DepsMut<TerraQuery>, info: MessageInfo) -> StdResult<Response> {
     let mut alloc_params = PARAMS.load(deps.storage, &info.sender)?;
     let prev_proposed_receiver: Addr;
 
@@ -421,7 +422,7 @@ fn execute_drop_new_receiver(deps: DepsMut, info: MessageInfo) -> StdResult<Resp
 /// ## Description
 /// Decrease an address' ASTRO allocation.
 /// ## Params
-/// * **deps** is an object of type [`DepsMut`].
+/// * **deps** is an object of type [`DepsMut<TerraQuery>`].
 ///
 /// * **env** is an object of type [`Env`].
 ///
@@ -431,7 +432,7 @@ fn execute_drop_new_receiver(deps: DepsMut, info: MessageInfo) -> StdResult<Resp
 ///
 /// * **amount** is an object of type [`Uint128`]. ASTRO amount to decrease the allocation by.
 fn execute_decrease_allocation(
-    deps: DepsMut,
+    deps: DepsMut<TerraQuery>,
     env: Env,
     info: MessageInfo,
     receiver: String,
@@ -483,7 +484,7 @@ fn execute_decrease_allocation(
 /// ## Description
 /// Increase an address' ASTRO allocation.
 /// ## Params
-/// * **deps** is an object of type [`DepsMut`].
+/// * **deps** is an object of type [`DepsMut<TerraQuery>`].
 ///
 /// * **config** is an object of type [`Config`].
 ///
@@ -493,7 +494,7 @@ fn execute_decrease_allocation(
 ///
 /// * **deposit_amount** is an [`Option`] of type [`Uint128`]. Amount of ASTRO to increase the allocation by using CW20 Receive.
 fn execute_increase_allocation(
-    deps: DepsMut,
+    deps: DepsMut<TerraQuery>,
     config: &Config,
     receiver: String,
     amount: Uint128,
@@ -546,7 +547,7 @@ fn execute_increase_allocation(
 /// ## Description
 /// Transfer unallocated ASTRO tokens to a recipient.
 /// ## Params
-/// * **deps** is an object of type [`DepsMut`].
+/// * **deps** is an object of type [`DepsMut<TerraQuery>`].
 ///
 /// * **info** is an object of type [`MessageInfo`].
 ///
@@ -554,7 +555,7 @@ fn execute_increase_allocation(
 ///
 /// * **recipient** is an [`Option`] of type [`u64`]. Transfer recipient.
 fn execute_transfer_unallocated(
-    deps: DepsMut,
+    deps: DepsMut<TerraQuery>,
     info: MessageInfo,
     amount: Uint128,
     recipient: Option<String>,
@@ -603,13 +604,13 @@ fn execute_transfer_unallocated(
 /// ## Description
 /// Allows a newly proposed allocation receiver to claim the ownership of that allocation.
 /// ## Params
-/// * **deps** is an object of type [`DepsMut`].
+/// * **deps** is an object of type [`DepsMut<TerraQuery>`].
 ///
 /// * **info** is an object of type [`MessageInfo`].
 ///
 /// * **prev_receiver** is an object of type [`String`]. This is the previous receiver for hte allocation.
 fn execute_claim_receiver(
-    deps: DepsMut,
+    deps: DepsMut<TerraQuery>,
     info: MessageInfo,
     prev_receiver: String,
 ) -> StdResult<Response> {
@@ -660,7 +661,7 @@ fn execute_claim_receiver(
 
 /// Updates builder unlock contract parameters.
 fn update_config(
-    deps: DepsMut,
+    deps: DepsMut<TerraQuery>,
     info: MessageInfo,
     new_max_allocations_amount: Uint128,
 ) -> StdResult<Response> {
@@ -691,7 +692,7 @@ fn update_config(
 
 /// Updates builder unlock schedules for specified accounts.
 fn update_unlock_schedules(
-    deps: DepsMut,
+    deps: DepsMut<TerraQuery>,
     env: Env,
     info: MessageInfo,
     new_unlock_schedules: Vec<(String, Schedule)>,
@@ -732,14 +733,14 @@ fn update_unlock_schedules(
 /// ## Description
 /// Return the contract configuration.
 /// ## Params
-/// * **deps** is an object of type [`DepsMut`].
+/// * **deps** is an object of type [`DepsMut<TerraQuery>`].
 fn query_config(deps: Deps) -> StdResult<Config> {
     CONFIG.load(deps.storage)
 }
 
 /// Return the global distribution state.
 /// ## Params
-/// * **deps** is an object of type [`DepsMut`].
+/// * **deps** is an object of type [`DepsMut<TerraQuery>`].
 pub fn query_state(deps: Deps) -> StdResult<StateResponse> {
     let state = STATE.load(deps.storage)?;
     Ok(StateResponse {
@@ -752,7 +753,7 @@ pub fn query_state(deps: Deps) -> StdResult<StateResponse> {
 /// ## Description
 /// Return information about a specific allocation.
 /// ## Params
-/// * **deps** is an object of type [`DepsMut`].
+/// * **deps** is an object of type [`DepsMut<TerraQuery>`].
 ///
 /// * **account** is an object of type [`String`]. This is the account whose allocation we query.
 fn query_allocation(deps: Deps, account: String) -> StdResult<AllocationResponse> {
@@ -801,7 +802,7 @@ fn query_allocations(
 /// ## Description
 /// Return the total amount of unlocked tokens for a specific account.
 /// ## Params
-/// * **deps** is an object of type [`DepsMut`].
+/// * **deps** is an object of type [`DepsMut<TerraQuery>`].
 ///
 /// * **env** is an object of type [`Env`].
 ///
@@ -823,7 +824,7 @@ fn query_tokens_unlocked(deps: Deps, env: Env, account: String) -> StdResult<Uin
 /// ## Description
 /// Simulate a token withdrawal.
 /// ## Params
-/// * **deps** is an object of type [`DepsMut`].
+/// * **deps** is an object of type [`DepsMut<TerraQuery>`].
 ///
 /// * **env** is an object of type [`Env`].
 ///
@@ -854,13 +855,13 @@ fn query_simulate_withdraw(
 /// ## Description
 /// Used for contract migration. Returns a default object of type [`Response`].
 /// ## Params
-/// * **deps** is an object of type [`DepsMut`].
+/// * **deps** is an object of type [`DepsMut<TerraQuery>`].
 ///
 /// * **_env** is an object of type [`Env`].
 ///
 /// * **msg** is an object of type [`Empty`].
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> StdResult<Response> {
+pub fn migrate(deps: DepsMut<TerraQuery>, _env: Env, msg: MigrateMsg) -> StdResult<Response> {
     let contract_version = get_contract_version(deps.storage)?;
 
     match contract_version.contract.as_ref() {

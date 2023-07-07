@@ -4,7 +4,7 @@ use cosmwasm_std::{
 };
 use cw2::{get_contract_version, set_contract_version};
 use cw20::{BalanceResponse, Cw20ExecuteMsg, Cw20ReceiveMsg};
-use cw_storage_plus::{Bound, U64Key};
+use cw_storage_plus::{Bound};
 use std::str::FromStr;
 
 use astroport::asset::addr_validate_to_lower;
@@ -236,7 +236,7 @@ pub fn submit_proposal(
 
     proposal.validate(config.whitelisted_links)?;
 
-    PROPOSALS.save(deps.storage, U64Key::new(count.u64()), &proposal)?;
+    PROPOSALS.save(deps.storage, count.u64(), &proposal)?;
 
     Ok(Response::new()
         .add_attribute("action", "submit_proposal")
@@ -269,7 +269,7 @@ pub fn cast_vote(
     proposal_id: u64,
     vote_option: ProposalVoteOption,
 ) -> Result<Response, ContractError> {
-    let mut proposal = PROPOSALS.load(deps.storage, U64Key::new(proposal_id))?;
+    let mut proposal = PROPOSALS.load(deps.storage, proposal_id)?;
 
     if proposal.status != ProposalStatus::Active {
         return Err(ContractError::ProposalNotActive {});
@@ -305,7 +305,7 @@ pub fn cast_vote(
         }
     };
 
-    PROPOSALS.save(deps.storage, U64Key::new(proposal_id), &proposal)?;
+    PROPOSALS.save(deps.storage, proposal_id, &proposal)?;
 
     Ok(Response::new()
         .add_attribute("action", "cast_vote")
@@ -333,7 +333,7 @@ pub fn end_proposal(
     _info: MessageInfo,
     proposal_id: u64,
 ) -> Result<Response, ContractError> {
-    let mut proposal = PROPOSALS.load(deps.storage, U64Key::new(proposal_id))?;
+    let mut proposal = PROPOSALS.load(deps.storage, proposal_id)?;
 
     if proposal.status != ProposalStatus::Active {
         return Err(ContractError::ProposalNotActive {});
@@ -371,7 +371,7 @@ pub fn end_proposal(
         ProposalStatus::Rejected
     };
 
-    PROPOSALS.save(deps.storage, U64Key::new(proposal_id), &proposal)?;
+    PROPOSALS.save(deps.storage, proposal_id, &proposal)?;
 
     let response = Response::new()
         .add_attributes(vec![
@@ -409,7 +409,7 @@ pub fn execute_proposal(
     _info: MessageInfo,
     proposal_id: u64,
 ) -> Result<Response, ContractError> {
-    let mut proposal = PROPOSALS.load(deps.storage, U64Key::new(proposal_id))?;
+    let mut proposal = PROPOSALS.load(deps.storage, proposal_id)?;
 
     if proposal.status != ProposalStatus::Passed {
         return Err(ContractError::ProposalNotPassed {});
@@ -429,7 +429,7 @@ pub fn execute_proposal(
 
     proposal.status = ProposalStatus::Executed;
 
-    PROPOSALS.save(deps.storage, U64Key::new(proposal_id), &proposal)?;
+    PROPOSALS.save(deps.storage, proposal_id, &proposal)?;
 
     let messages = match proposal.messages {
         Some(mut messages) => {
@@ -465,7 +465,7 @@ pub fn remove_completed_proposal(
 ) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
 
-    let mut proposal = PROPOSALS.load(deps.storage, U64Key::new(proposal_id))?;
+    let mut proposal = PROPOSALS.load(deps.storage, proposal_id)?;
 
     if env.block.height
         > (proposal.end_block + config.proposal_effective_delay + config.proposal_expiration_period)
@@ -477,7 +477,7 @@ pub fn remove_completed_proposal(
         return Err(ContractError::ProposalNotCompleted {});
     }
 
-    PROPOSALS.remove(deps.storage, U64Key::new(proposal_id));
+    PROPOSALS.remove(deps.storage, proposal_id);
 
     Ok(Response::new()
         .add_attribute("action", "remove_completed_proposal")
@@ -606,14 +606,14 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
             to_binary(&query_proposal_votes(deps, proposal_id)?)
         }
         QueryMsg::UserVotingPower { user, proposal_id } => {
-            let proposal = PROPOSALS.load(deps.storage, U64Key::new(proposal_id))?;
+            let proposal = PROPOSALS.load(deps.storage, proposal_id)?;
 
             addr_validate_to_lower(deps.api, &user)?;
 
             to_binary(&calc_voting_power(deps, user, &proposal)?)
         }
         QueryMsg::TotalVotingPower { proposal_id } => {
-            let proposal = PROPOSALS.load(deps.storage, U64Key::new(proposal_id))?;
+            let proposal = PROPOSALS.load(deps.storage, proposal_id)?;
             to_binary(&calc_total_voting_power_at(deps, &proposal)?)
         }
     }
@@ -644,7 +644,7 @@ pub fn query_proposals(
     let proposal_count = PROPOSAL_COUNT.load(deps.storage)?;
 
     let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
-    let start = start.map(|start| Bound::inclusive(U64Key::new(start)));
+    let start = start.map(|start| Bound::inclusive_int(start));
 
     let proposals_list: StdResult<Vec<_>> = PROPOSALS
         .range(deps.storage, start, None, Order::Ascending)
@@ -668,7 +668,7 @@ pub fn query_proposals(
 ///
 /// * **proposal_id** is a parameter of type `u64`. This is the proposal identifier.
 pub fn query_proposal(deps: Deps, proposal_id: u64) -> StdResult<Proposal> {
-    let proposal = PROPOSALS.load(deps.storage, U64Key::new(proposal_id))?;
+    let proposal = PROPOSALS.load(deps.storage, proposal_id)?;
     Ok(proposal)
 }
 
@@ -679,7 +679,7 @@ pub fn query_proposal(deps: Deps, proposal_id: u64) -> StdResult<Proposal> {
 ///
 /// * **proposal_id** is a parameter of type `u64`. This is the proposal identifier.
 pub fn query_proposal_votes(deps: Deps, proposal_id: u64) -> StdResult<ProposalVotesResponse> {
-    let proposal = PROPOSALS.load(deps.storage, U64Key::from(proposal_id))?;
+    let proposal = PROPOSALS.load(deps.storage, proposal_id)?;
 
     Ok(ProposalVotesResponse {
         proposal_id,

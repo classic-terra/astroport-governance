@@ -81,8 +81,8 @@ impl Mul<Decimal> for BasicPoints {
 
     fn mul(self, rhs: Decimal) -> Self::Output {
         Decimal::from_ratio(
-            self.0 as u128 * rhs.numerator(),
-            rhs.denominator() * Self::MAX as u128,
+            self.0 as u128 * rhs.numerator().u128(),
+            rhs.denominator().u128() * Self::MAX as u128,
         )
     }
 }

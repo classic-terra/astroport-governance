@@ -1,10 +1,10 @@
 use std::convert::TryInto;
 
-use astroport::asset::{pair_info_by_pool, AssetInfo};
-use astroport::factory::PairType;
+use astroport::asset::{pair_info_by_pool};
 use astroport::querier::query_pair_info;
-use cosmwasm_std::{Addr, Deps, Order, Pair, StdError, StdResult, Storage, Uint128};
-use cw_storage_plus::{Bound, U64Key};
+use classic_bindings::TerraQuery;
+use cosmwasm_std::{Addr, Deps, Order, StdError, StdResult, Storage, Uint128};
+use cw_storage_plus::{Bound};
 
 use astroport_governance::utils::calc_voting_power;
 
@@ -49,20 +49,12 @@ pub(crate) enum VotedPoolInfoResult {
 /// * pool's pair type is not in blocked list,
 /// * any of pair's token is not listed in blocked tokens list.
 pub(crate) fn filter_pools(
-    deps: Deps,
+    deps: Deps<TerraQuery>,
     generator_addr: &Addr,
     factory_addr: &Addr,
     pools: Vec<(Addr, Uint128)>,
     pools_limit: u64,
 ) -> StdResult<Vec<(String, Uint128)>> {
-    let blocked_tokens: Vec<AssetInfo> = deps.querier.query_wasm_smart(
-        generator_addr.clone(),
-        &astroport::generator::QueryMsg::BlockedListTokens {},
-    )?;
-    let blocklisted_pair_types: Vec<PairType> = deps.querier.query_wasm_smart(
-        factory_addr.clone(),
-        &astroport::factory::QueryMsg::BlacklistedPairTypes {},
-    )?;
 
     let pools = pools
         .into_iter()
@@ -71,9 +63,7 @@ pub(crate) fn filter_pools(
             let pair_info = pair_info_by_pool(deps, pool_addr).ok()?;
             // Check a pair is registered in factory
             query_pair_info(&deps.querier, factory_addr.clone(), &pair_info.asset_infos).ok()?;
-            let condition = !blocklisted_pair_types.contains(&pair_info.pair_type)
-                && !blocked_tokens.contains(&pair_info.asset_infos[0])
-                && !blocked_tokens.contains(&pair_info.asset_infos[1]);
+            let condition = false;
             if condition {
                 Some((pair_info.liquidity_token.to_string(), vxastro_amount))
             } else {
@@ -102,7 +92,7 @@ pub(crate) fn cancel_user_changes(
     // Cancel scheduled slope changes
     let last_pool_period = fetch_last_pool_period(storage, period, pool_addr)?.unwrap_or(period);
     if last_pool_period < old_lock_end + 1 {
-        let end_period_key = U64Key::new(old_lock_end + 1);
+        let end_period_key = old_lock_end + 1;
         let old_scheduled_change =
             POOL_SLOPE_CHANGES.load(storage, (pool_addr, end_period_key.clone()))?;
         let new_slope = old_scheduled_change - old_bps * old_slope;
@@ -138,7 +128,7 @@ pub(crate) fn vote_for_pool(
     // Schedule slope changes
     POOL_SLOPE_CHANGES.update::<_, StdError>(
         storage,
-        (pool_addr, U64Key::new(lock_end + 1)),
+        (pool_addr, lock_end + 1),
         |slope_opt| {
             if let Some(saved_slope) = slope_opt {
                 Ok(saved_slope + bps * slope)
@@ -170,7 +160,7 @@ pub(crate) fn update_pool_info(
     if POOLS.may_load(storage, pool_addr)?.is_none() {
         POOLS.save(storage, pool_addr, &())?
     }
-    let period_key = U64Key::new(period);
+    let period_key = period;
     let pool_info = match get_pool_info_mut(storage, period, pool_addr)? {
         VotedPoolInfoResult::Unchanged(mut pool_info) | VotedPoolInfoResult::New(mut pool_info)
             if changes.is_some() =>
@@ -202,14 +192,14 @@ pub(crate) fn get_pool_info_mut(
     pool_addr: &Addr,
 ) -> StdResult<VotedPoolInfoResult> {
     let pool_info_result = if let Some(pool_info) =
-        POOL_VOTES.may_load(storage, (U64Key::new(period), pool_addr))?
+        POOL_VOTES.may_load(storage, (period, pool_addr))?
     {
         VotedPoolInfoResult::Unchanged(pool_info)
     } else {
         let pool_info_result = if let Some(mut prev_period) =
             fetch_last_pool_period(storage, period, pool_addr)?
         {
-            let mut pool_info = POOL_VOTES.load(storage, (U64Key::new(prev_period), pool_addr))?;
+            let mut pool_info = POOL_VOTES.load(storage, (prev_period, pool_addr))?;
             // Recalculating passed periods
             let scheduled_slope_changes =
                 fetch_slope_changes(storage, pool_addr, prev_period, period)?;
@@ -224,7 +214,7 @@ pub(crate) fn get_pool_info_mut(
                     slope: pool_info.slope - scheduled_change,
                 };
                 // Save intermediate result
-                let recalc_period_key = U64Key::new(recalc_period);
+                let recalc_period_key = recalc_period;
                 POOL_PERIODS.save(storage, (pool_addr, recalc_period_key.clone()), &())?;
                 POOL_VOTES.save(storage, (recalc_period_key, pool_addr), &pool_info)?;
                 prev_period = recalc_period
@@ -257,11 +247,11 @@ pub(crate) fn get_pool_info(
     pool_addr: &Addr,
 ) -> StdResult<VotedPoolInfo> {
     let pool_info = if let Some(pool_info) =
-        POOL_VOTES.may_load(storage, (U64Key::new(period), pool_addr))?
+        POOL_VOTES.may_load(storage, (period, pool_addr))?
     {
         pool_info
     } else if let Some(mut prev_period) = fetch_last_pool_period(storage, period, pool_addr)? {
-        let mut pool_info = POOL_VOTES.load(storage, (U64Key::new(prev_period), pool_addr))?;
+        let mut pool_info = POOL_VOTES.load(storage, (prev_period, pool_addr))?;
         // Recalculating passed periods
         let scheduled_slope_changes = fetch_slope_changes(storage, pool_addr, prev_period, period)?;
         for (recalc_period, scheduled_change) in scheduled_slope_changes {
@@ -305,24 +295,13 @@ pub(crate) fn fetch_last_pool_period(
         .range(
             storage,
             None,
-            Some(Bound::Exclusive(U64Key::new(period).wrapped)),
+            Some(Bound::exclusive(period)),
             Order::Descending,
         )
         .next()
-        .map(deserialize_pair)
         .transpose()?
         .map(|(period, _)| period);
     Ok(period_opt)
-}
-
-/// ## Description
-/// Helper function for deserialization.
-pub(crate) fn deserialize_pair<T>(pair: StdResult<Pair<T>>) -> StdResult<(u64, T)> {
-    let (period_serialized, data) = pair?;
-    let period_bytes: [u8; 8] = period_serialized
-        .try_into()
-        .map_err(|_| StdError::generic_err("Deserialization error"))?;
-    Ok((u64::from_be_bytes(period_bytes), data))
 }
 
 /// ## Description
@@ -337,10 +316,9 @@ pub(crate) fn fetch_slope_changes(
         .prefix(pool_addr)
         .range(
             storage,
-            Some(Bound::Exclusive(U64Key::new(last_period).wrapped)),
-            Some(Bound::Inclusive(U64Key::new(period).wrapped)),
+            Some(Bound::exclusive(last_period)),
+            Some(Bound::inclusive(period)),
             Order::Ascending,
         )
-        .map(deserialize_pair)
         .collect()
 }

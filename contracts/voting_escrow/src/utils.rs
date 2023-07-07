@@ -1,8 +1,9 @@
 use crate::error::ContractError;
 use astroport::asset::addr_validate_to_lower;
 use astroport_governance::utils::{get_periods_count, MAX_LOCK_TIME, WEEK};
-use cosmwasm_std::{Addr, Decimal, Deps, DepsMut, Order, Pair, StdError, StdResult, Uint128};
-use cw_storage_plus::{Bound, U64Key};
+use classic_bindings::TerraQuery;
+use cosmwasm_std::{Addr, Decimal, Deps, DepsMut, Order, StdError, StdResult, Uint128};
+use cw_storage_plus::{Bound};
 use std::convert::TryInto;
 
 use crate::state::{Point, BLACKLIST, CONFIG, HISTORY, LAST_SLOPE_CHANGE, SLOPE_CHANGES};
@@ -17,7 +18,7 @@ pub(crate) fn time_limits_check(time: u64) -> Result<(), ContractError> {
 }
 
 /// Checks that the sender is the xASTRO token.
-pub(crate) fn xastro_token_check(deps: Deps, sender: Addr) -> Result<(), ContractError> {
+pub(crate) fn xastro_token_check(deps: Deps<TerraQuery>, sender: Addr) -> Result<(), ContractError> {
     let config = CONFIG.load(deps.storage)?;
     if sender != config.deposit_token_addr {
         Err(ContractError::Unauthorized {})
@@ -27,7 +28,7 @@ pub(crate) fn xastro_token_check(deps: Deps, sender: Addr) -> Result<(), Contrac
 }
 
 /// Checks if the blacklist contains a specific address.
-pub(crate) fn blacklist_check(deps: Deps, addr: &Addr) -> Result<(), ContractError> {
+pub(crate) fn blacklist_check(deps: Deps<TerraQuery>, addr: &Addr) -> Result<(), ContractError> {
     let blacklist = BLACKLIST.load(deps.storage)?;
     if blacklist.contains(addr) {
         Err(ContractError::AddressBlacklisted(addr.to_string()))
@@ -66,14 +67,14 @@ pub(crate) fn calc_coefficient(interval: u64) -> Decimal {
 pub(crate) fn fetch_last_checkpoint(
     deps: Deps,
     addr: &Addr,
-    period_key: &U64Key,
+    period_key: u64,
 ) -> StdResult<Option<Pair<Point>>> {
     HISTORY
         .prefix(addr.clone())
         .range(
             deps.storage,
             None,
-            Some(Bound::Inclusive(period_key.wrapped.clone())),
+            Some(Bound::inclusive(period_key)),
             Order::Descending,
         )
         .next()
@@ -81,7 +82,7 @@ pub(crate) fn fetch_last_checkpoint(
 }
 
 pub(crate) fn cancel_scheduled_slope(deps: DepsMut, slope: Uint128, period: u64) -> StdResult<()> {
-    let end_period_key = U64Key::new(period);
+    let end_period_key = period;
     let last_slope_change = LAST_SLOPE_CHANGE
         .may_load(deps.as_ref().storage)?
         .unwrap_or(0);
@@ -109,7 +110,7 @@ pub(crate) fn schedule_slope_change(deps: DepsMut, slope: Uint128, period: u64) 
         SLOPE_CHANGES
             .update(
                 deps.storage,
-                U64Key::new(period),
+                period,
                 |slope_opt| -> StdResult<Uint128> {
                     if let Some(pslope) = slope_opt {
                         Ok(pslope + slope)
@@ -142,8 +143,8 @@ pub(crate) fn fetch_slope_changes(
     SLOPE_CHANGES
         .range(
             deps.storage,
-            Some(Bound::Exclusive(U64Key::new(last_slope_change).wrapped)),
-            Some(Bound::Inclusive(U64Key::new(period).wrapped)),
+            Some(Bound::exclusive(last_slope_change)),
+            Some(Bound::inclusive(period)),
             Order::Ascending,
         )
         .map(deserialize_pair)
