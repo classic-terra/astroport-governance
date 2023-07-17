@@ -4,7 +4,7 @@ use cosmwasm_std::{
 };
 use cw2::{get_contract_version, set_contract_version};
 use cw20::{BalanceResponse, Cw20ExecuteMsg, Cw20ReceiveMsg};
-use cw_storage_plus::{Bound};
+use cw_storage_plus::Bound;
 use std::str::FromStr;
 
 use astroport::asset::addr_validate_to_lower;
@@ -644,7 +644,7 @@ pub fn query_proposals(
     let proposal_count = PROPOSAL_COUNT.load(deps.storage)?;
 
     let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
-    let start = start.map(|start| Bound::inclusive_int(start));
+    let start = start.map(|start| Bound::inclusive(start));
 
     let proposals_list: StdResult<Vec<_>> = PROPOSALS
         .range(deps.storage, start, None, Order::Ascending)
@@ -843,6 +843,7 @@ pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, Co
 
                 CONFIG.save(deps.storage, &config)?;
             }
+            "1.1.0" => {}
             _ => return Err(ContractError::MigrationError {}),
         },
         _ => return Err(ContractError::MigrationError {}),

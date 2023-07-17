@@ -18,7 +18,7 @@ library = []
 cw2 = "0.15"
 cw20 = "0.15"
 cosmwasm-std = "1.1"
-cw-storage-plus = "0.11.1"
+cw-storage-plus = "0.15"
 schemars = "0.8.1"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 astroport = {git = "https://github.com/classic-terra/astroport-core.git", branch = "terra_classic_invictus", package = "astroport"}

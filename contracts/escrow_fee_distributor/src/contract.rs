@@ -22,7 +22,7 @@ use astroport_governance::voting_escrow::{
 use cw20::Cw20ReceiveMsg;
 
 use cw2::set_contract_version;
-use cw_storage_plus::{Bound, PrimaryKey};
+use cw_storage_plus::{Bound};
 
 /// Contract name that is used for migration.
 const CONTRACT_NAME: &str = "astroport-escrow_fee_distributor";
@@ -460,7 +460,7 @@ fn query_available_reward_per_week(
 ) -> StdResult<Vec<Uint128>> {
     let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
     let start = if let Some(timestamp) = start_after {
-        let bound = get_period(timestamp)?.joined_key();
+        let bound = get_period(timestamp).unwrap();
         Some(Bound::exclusive(bound))
     } else {
         None

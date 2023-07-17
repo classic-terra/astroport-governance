@@ -295,7 +295,7 @@ fn gauge_generators(deps: DepsMut<TerraQuery>, env: Env, info: MessageInfo) -> E
         .collect::<Vec<_>>()
         .into_iter()
         .map(|pool_addr_serialized| {
-            let pool_addr = String::from_utf8(pool_addr_serialized)
+            let pool_addr = String::from_utf8(pool_addr_serialized.unwrap().as_bytes().to_vec())
                 .map_err(|_| StdError::generic_err("Deserialization error"))
                 .and_then(|pool_addr_string| addr_validate_to_lower(deps.api, &pool_addr_string))?;
             let pool_info = update_pool_info(deps.storage, block_period, &pool_addr, None)?;

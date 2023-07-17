@@ -21,7 +21,7 @@ checksum = "9c7d0618f0e0b7e8ff11427422b64564d5fb0be1940354bfe2e0529b18a9d9b8"
 
 [[package]]
 name = "astro-assembly"
-version = "1.0.2"
+version = "1.1.0"
 dependencies = [
  "anyhow",
  "astroport",
@@ -33,7 +33,7 @@ dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
  "cw-multi-test",
- "cw-storage-plus 0.11.1",
+ "cw-storage-plus",
  "cw2",
  "cw20",
  "schemars",
@@ -49,64 +49,11 @@ source = "git+https://github.com/classic-terra/astroport-core.git?branch=terra_c
 dependencies = [
  "classic-bindings",
  "cosmwasm-std",
- "cw-storage-plus 0.15.1",
+ "cw-storage-plus",
  "cw20",
  "schemars",
  "serde",
  "uint",
-]
-
-[[package]]
-name = "astroport-escrow-fee-distributor"
-version = "1.0.0"
-dependencies = [
- "astroport",
- "astroport-governance",
- "astroport-tests",
- "astroport-token",
- "classic-bindings",
- "cosmwasm-schema",
- "cosmwasm-std",
- "cw-multi-test",
- "cw-storage-plus 0.11.1",
- "cw2",
- "cw20",
- "schemars",
- "serde",
- "thiserror",
-]
-
-[[package]]
-name = "astroport-factory"
-version = "1.0.0-fix1"
-source = "git+https://github.com/classic-terra/astroport-core.git?branch=terra_classic_invictus#6fed2cfc29fa4e4351baed27a167f1b0afb8f714"
-dependencies = [
- "astroport",
- "classic-bindings",
- "cosmwasm-std",
- "cw-storage-plus 0.15.1",
- "cw2",
- "itertools",
- "protobuf",
- "schemars",
- "serde",
- "thiserror",
-]
-
-[[package]]
-name = "astroport-generator"
-version = "1.1.0"
-source = "git+https://github.com/classic-terra/astroport-core.git?branch=terra_classic_invictus#6fed2cfc29fa4e4351baed27a167f1b0afb8f714"
-dependencies = [
- "astroport",
- "classic-bindings",
- "cosmwasm-std",
- "cw-storage-plus 0.15.1",
- "cw2",
- "cw20",
- "schemars",
- "serde",
- "thiserror",
 ]
 
 [[package]]
@@ -123,24 +70,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "astroport-pair"
-version = "1.0.0"
-source = "git+https://github.com/classic-terra/astroport-core.git?branch=terra_classic_invictus#6fed2cfc29fa4e4351baed27a167f1b0afb8f714"
-dependencies = [
- "astroport",
- "classic-bindings",
- "cosmwasm-std",
- "cw-storage-plus 0.15.1",
- "cw2",
- "cw20",
- "integer-sqrt",
- "protobuf",
- "schemars",
- "serde",
- "thiserror",
-]
-
-[[package]]
 name = "astroport-staking"
 version = "1.0.0"
 source = "git+https://github.com/classic-terra/astroport-core.git?branch=terra_classic_invictus#6fed2cfc29fa4e4351baed27a167f1b0afb8f714"
@@ -148,33 +77,13 @@ dependencies = [
  "astroport",
  "classic-bindings",
  "cosmwasm-std",
- "cw-storage-plus 0.15.1",
+ "cw-storage-plus",
  "cw2",
  "cw20",
  "protobuf",
  "schemars",
  "serde",
  "thiserror",
-]
-
-[[package]]
-name = "astroport-tests"
-version = "1.0.0"
-dependencies = [
- "anyhow",
- "astroport",
- "astroport-escrow-fee-distributor",
- "astroport-governance",
- "astroport-staking",
- "astroport-token",
- "classic-bindings",
- "cosmwasm-schema",
- "cosmwasm-std",
- "cw-multi-test",
- "cw20",
- "schemars",
- "serde",
- "voting-escrow",
 ]
 
 [[package]]
@@ -201,7 +110,7 @@ dependencies = [
  "astroport",
  "classic-bindings",
  "cosmwasm-std",
- "cw-storage-plus 0.15.1",
+ "cw-storage-plus",
  "cw2",
  "cw20",
  "cw20-base",
@@ -284,7 +193,7 @@ dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
  "cw-multi-test",
- "cw-storage-plus 0.11.1",
+ "cw-storage-plus",
  "cw2",
  "cw20",
  "schemars",
@@ -469,7 +378,7 @@ dependencies = [
  "anyhow",
  "cosmwasm-std",
  "cosmwasm-storage",
- "cw-storage-plus 0.15.1",
+ "cw-storage-plus",
  "cw-utils",
  "derivative",
  "itertools",
@@ -477,17 +386,6 @@ dependencies = [
  "schemars",
  "serde",
  "thiserror",
-]
-
-[[package]]
-name = "cw-storage-plus"
-version = "0.11.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d7ee1963302b0ac2a9d42fe0faec826209c17452bfd36fbfd9d002a88929261"
-dependencies = [
- "cosmwasm-std",
- "schemars",
- "serde",
 ]
 
 [[package]]
@@ -524,7 +422,7 @@ checksum = "5abb8ecea72e09afff830252963cb60faf945ce6cef2c20a43814516082653da"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
- "cw-storage-plus 0.15.1",
+ "cw-storage-plus",
  "schemars",
  "serde",
 ]
@@ -550,7 +448,7 @@ checksum = "0909c56d0c14601fbdc69382189799482799dcad87587926aec1f3aa321abc41"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
- "cw-storage-plus 0.15.1",
+ "cw-storage-plus",
  "cw-utils",
  "cw2",
  "cw20",
@@ -719,33 +617,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c8cbd1169bd7b4a0a20d92b9af7a7e0422888bd38a6f5ec29c1fd8c1558a272e"
 
 [[package]]
-name = "generator-controller"
-version = "1.0.0"
-dependencies = [
- "anyhow",
- "astroport",
- "astroport-factory",
- "astroport-generator",
- "astroport-governance",
- "astroport-pair",
- "astroport-staking",
- "astroport-token",
- "classic-bindings",
- "cosmwasm-schema",
- "cosmwasm-std",
- "cw-multi-test",
- "cw-storage-plus 0.11.1",
- "cw2",
- "cw20",
- "itertools",
- "proptest",
- "schemars",
- "serde",
- "thiserror",
- "voting-escrow",
-]
-
-[[package]]
 name = "generic-array"
 version = "0.14.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -814,15 +685,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a5bbe824c507c5da5956355e86a746d82e0e1464f65d862cc5e71da70e94b2c"
 dependencies = [
  "cfg-if",
-]
-
-[[package]]
-name = "integer-sqrt"
-version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "276ec31bcb4a9ee45f58bec6f9ec700ae4cf4f4f8f2fa7e06cb406bd5ffdd770"
-dependencies = [
- "num-traits",
 ]
 
 [[package]]
@@ -1381,7 +1243,7 @@ dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
  "cw-multi-test",
- "cw-storage-plus 0.11.1",
+ "cw-storage-plus",
  "cw2",
  "cw20",
  "cw20-base",

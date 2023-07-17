@@ -11,7 +11,7 @@ use cosmwasm_std::{
 };
 use cw2::{get_contract_version, set_contract_version};
 use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg};
-use cw_storage_plus::{Bound, PrimaryKey};
+use cw_storage_plus::Bound;
 
 use crate::contract::helpers::compute_unlocked_amount;
 use crate::migration::{MigrateMsg, CONFIGV100, STATEV100, STATUSV100};
@@ -269,7 +269,7 @@ fn execute_create_allocations(
         return Err(StdError::generic_err("Only ASTRO can be deposited"));
     }
 
-    if deposit_amount != allocations.iter().map(|params| params.1.amount).sum() {
+    if deposit_amount != allocations.iter().map(|params| params.1.amount).sum::<Uint128>() {
         return Err(StdError::generic_err("ASTRO deposit amount mismatch"));
     }
 
@@ -784,7 +784,7 @@ fn query_allocations(
 
     let start = if let Some(start_after) = start_after {
         default_start = deps.api.addr_validate(&start_after)?;
-        Some(Bound::exclusive(default_start.joined_key()))
+        Some(Bound::exclusive(&default_start))
     } else {
         None
     };
@@ -794,7 +794,7 @@ fn query_allocations(
         .take(limit)
         .map(|pair| {
             let (key, alloc_params) = pair?;
-            Ok((Addr::unchecked(String::from_utf8(key)?), alloc_params))
+            Ok((Addr::unchecked(String::from_utf8(key.as_bytes().to_vec())?), alloc_params))
         })
         .collect::<StdResult<Vec<(Addr, AllocationParams)>>>()
 }
@@ -879,7 +879,7 @@ pub fn migrate(deps: DepsMut<TerraQuery>, _env: Env, msg: MigrateMsg) -> StdResu
 
                 let keys = STATUSV100
                     .keys(deps.storage, None, None, cosmwasm_std::Order::Ascending {})
-                    .map(String::from_utf8)
+                    .map(|addr| String::from_utf8(addr.unwrap().as_bytes().to_vec()))
                     .collect::<Result<Vec<String>, FromUtf8Error>>()?;
 
                 for key in keys {

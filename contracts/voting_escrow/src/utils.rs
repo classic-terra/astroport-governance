@@ -153,7 +153,7 @@ pub(crate) fn fetch_slope_changes(
 
 /// Bulk validation and conversion between [`String`] -> [`Addr`] for an array of addresses.
 /// If any address is invalid, the function returns [`StdError`].
-pub(crate) fn validate_addresses(deps: Deps, addresses: &[String]) -> StdResult<Vec<Addr>> {
+pub(crate) fn validate_addresses(deps: Deps<TerraQuery>, addresses: &[String]) -> StdResult<Vec<Addr>> {
     addresses
         .iter()
         .map(|addr| addr_validate_to_lower(deps.api, addr))

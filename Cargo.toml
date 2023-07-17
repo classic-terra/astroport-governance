@@ -1,7 +1,6 @@
 [workspace]
 members = [
-    "packages/*",
-    "contracts/*",
+    "contracts/assembly",
 ]
 
 [profile.release]

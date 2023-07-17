@@ -618,7 +618,7 @@ fn extend_lock_time(
 ///
 /// * **remove_addrs** is an [`Option`] containing a [`Vec<String>`]. This is the array of addresses to whitelist.
 fn update_blacklist(
-    mut deps: DepsMut,
+    mut deps: DepsMut<TerraQuery>,
     env: Env,
     info: MessageInfo,
     append_addrs: Option<Vec<String>>,
