@@ -3,7 +3,7 @@ use std::convert::TryInto;
 
 use astroport::asset::{addr_validate_to_lower, pair_info_by_pool};
 use astroport::common::{claim_ownership, drop_ownership_proposal, propose_new_owner};
-use classic_bindings::TerraQuery;
+
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
@@ -94,7 +94,7 @@ pub fn instantiate(
 ///
 /// * **ExecuteMsg::ClaimOwnership {}** Claims contract ownership.
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn execute(deps: DepsMut<TerraQuery>, env: Env, info: MessageInfo, msg: ExecuteMsg) -> ExecuteResult {
+pub fn execute(deps: DepsMut, env: Env, info: MessageInfo, msg: ExecuteMsg) -> ExecuteResult {
     match msg {
         ExecuteMsg::Vote { votes } => handle_vote(deps, env, info, votes),
         ExecuteMsg::GaugePools {} => gauge_generators(deps, env, info),
@@ -160,7 +160,7 @@ pub fn execute(deps: DepsMut<TerraQuery>, env: Env, info: MessageInfo, msg: Exec
 /// Tuple consists of pool address and percentage of user's voting power for a given pool.
 /// Percentage should be in BPS form.
 fn handle_vote(
-    deps: DepsMut<TerraQuery>,
+    deps: DepsMut,
     env: Env,
     info: MessageInfo,
     votes: Vec<(String, u16)>,
@@ -277,7 +277,7 @@ fn handle_vote(
 /// * **env** is an object of type [`Env`].
 ///
 /// * **info** is an object of type [`MessageInfo`].
-fn gauge_generators(deps: DepsMut<TerraQuery>, env: Env, info: MessageInfo) -> ExecuteResult {
+fn gauge_generators(deps: DepsMut, env: Env, info: MessageInfo) -> ExecuteResult {
     let mut gauge_info = GAUGE_INFO.load(deps.storage)?;
     let config = CONFIG.load(deps.storage)?;
     let block_period = get_period(env.block.time.seconds())?;
@@ -350,7 +350,7 @@ fn gauge_generators(deps: DepsMut<TerraQuery>, env: Env, info: MessageInfo) -> E
 /// * **info** is an object of type [`MessageInfo`].
 ///
 /// * **limit** is a new limit of pools which are eligible to receive allocation points.
-fn change_pools_limit(deps: DepsMut<TerraQuery>, info: MessageInfo, limit: u64) -> ExecuteResult {
+fn change_pools_limit(deps: DepsMut, info: MessageInfo, limit: u64) -> ExecuteResult {
     let mut config = CONFIG.load(deps.storage)?;
 
     if info.sender != config.owner {

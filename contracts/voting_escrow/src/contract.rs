@@ -2,14 +2,14 @@ use astroport::asset::addr_validate_to_lower;
 use astroport::common::{claim_ownership, drop_ownership_proposal, propose_new_owner};
 use astroport::DecimalCheckedOps;
 use astroport_governance::utils::{get_period, get_periods_count, EPOCH_START, WEEK};
-use classic_bindings::TerraQuery;
+
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
     from_binary, to_binary, Addr, Binary, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response,
     StdError, StdResult, Uint128, WasmMsg,
 };
-use cw2::{set_contract_version, get_contract_version};
+use cw2::set_contract_version;
 use cw20::{
     BalanceResponse, Cw20ExecuteMsg, Cw20ReceiveMsg, Logo, LogoInfo, MarketingInfoResponse,
     TokenInfoResponse,
@@ -20,7 +20,7 @@ use cw20_base::contract::{
 use cw20_base::state::{MinterData, TokenInfo, LOGO, MARKETING_INFO, TOKEN_INFO};
 
 use astroport_governance::voting_escrow::{
-    ConfigResponse, Cw20HookMsg, ExecuteMsg, InstantiateMsg, LockInfoResponse, MigrateMsg,
+    ConfigResponse, Cw20HookMsg, ExecuteMsg, InstantiateMsg, LockInfoResponse,
     QueryMsg, VotingPowerResponse,
 };
 
@@ -139,7 +139,7 @@ pub fn instantiate(
 /// * **ExecuteMsg::ClaimOwnership {}** Claims contract ownership.
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
-    deps: DepsMut<TerraQuery>,
+    deps: DepsMut,
     env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
@@ -226,12 +226,11 @@ fn checkpoint_total(
     new_slope: Uint128,
 ) -> StdResult<()> {
     let cur_period = get_period(env.block.time.seconds())?;
-    let cur_period_key = cur_period;
     let contract_addr = env.contract.address;
     let add_voting_power = add_voting_power.unwrap_or_default();
 
     // Get last checkpoint
-    let last_checkpoint = fetch_last_checkpoint(deps.as_ref(), &contract_addr, &cur_period_key)?;
+    let last_checkpoint = fetch_last_checkpoint(deps.as_ref(), &contract_addr, cur_period)?;
     let new_point = if let Some((_, mut point)) = last_checkpoint {
         let last_slope_change = LAST_SLOPE_CHANGE
             .may_load(deps.as_ref().storage)?
@@ -274,7 +273,7 @@ fn checkpoint_total(
             end: 0, // we don't use 'end' in total voting power calculations
         }
     };
-    HISTORY.save(deps.storage, (contract_addr, cur_period_key), &new_point)
+    HISTORY.save(deps.storage, (contract_addr, cur_period), &new_point)
 }
 
 /// ## Description
@@ -300,7 +299,7 @@ fn checkpoint_total(
 ///
 /// * **new_end** is an object of type [`Option<u64>`]. This is a new lock time for the user's vxASTRO position.
 fn checkpoint(
-    mut deps: DepsMut<TerraQuery>,
+    mut deps: DepsMut,
     env: Env,
     addr: Addr,
     add_amount: Option<Uint128>,
@@ -371,7 +370,7 @@ fn checkpoint(
     // Schedule a slope change
     schedule_slope_change(deps.branch(), new_point.slope, new_point.end)?;
 
-    HISTORY.save(deps.storage, (addr, cur_period_key), &new_point)?;
+    HISTORY.save(deps.storage, (addr, cur_period), &new_point)?;
     checkpoint_total(
         deps,
         env,
@@ -395,7 +394,7 @@ fn checkpoint(
 ///
 /// * **cw20_msg** is an object of type [`Cw20ReceiveMsg`]. This is the CW20 message to process.
 fn receive_cw20(
-    deps: DepsMut<TerraQuery>,
+    deps: DepsMut,
     env: Env,
     info: MessageInfo,
     cw20_msg: Cw20ReceiveMsg,
@@ -434,7 +433,7 @@ fn receive_cw20(
 ///
 /// * **time** is an object of type [`u64`]. This is the duration of the lock.
 fn create_lock(
-    deps: DepsMut<TerraQuery>,
+    deps: DepsMut,
     env: Env,
     user: Addr,
     amount: Uint128,
@@ -510,7 +509,7 @@ fn deposit_for(
 /// * **env** is an object of type [`Env`].
 ///
 /// * **info** is an object of type [`MessageInfo`]. This is the withdrawal message coming from the xASTRO token contract.
-fn withdraw(deps: DepsMut<TerraQuery>, env: Env, info: MessageInfo) -> Result<Response, ContractError> {
+fn withdraw(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response, ContractError> {
     let sender = info.sender;
     // 'LockDoesntExist' is either a lock does not exist in LOCKED or a lock exits but lock.amount == 0
     let mut lock = LOCKED
@@ -572,7 +571,7 @@ fn withdraw(deps: DepsMut<TerraQuery>, env: Env, info: MessageInfo) -> Result<Re
 ///
 /// * **time** is an object of type [`u64`]. This is the increase in lock time applied to the staker's position.
 fn extend_lock_time(
-    deps: DepsMut<TerraQuery>,
+    deps: DepsMut,
     env: Env,
     info: MessageInfo,
     time: u64,
@@ -618,7 +617,7 @@ fn extend_lock_time(
 ///
 /// * **remove_addrs** is an [`Option`] containing a [`Vec<String>`]. This is the array of addresses to whitelist.
 fn update_blacklist(
-    mut deps: DepsMut<TerraQuery>,
+    mut deps: DepsMut,
     env: Env,
     info: MessageInfo,
     append_addrs: Option<Vec<String>>,

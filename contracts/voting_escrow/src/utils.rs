@@ -1,9 +1,9 @@
 use crate::error::ContractError;
 use astroport::asset::addr_validate_to_lower;
 use astroport_governance::utils::{get_periods_count, MAX_LOCK_TIME, WEEK};
-use classic_bindings::TerraQuery;
-use cosmwasm_std::{Addr, Decimal, Deps, DepsMut, Order, StdError, StdResult, Uint128};
-use cw_storage_plus::{Bound};
+
+use cosmwasm_std::{Addr, Decimal, Deps, DepsMut, Order, StdError, StdResult, Uint128, Record};
+use cw_storage_plus::{Bound, IntKey};
 use std::convert::TryInto;
 
 use crate::state::{Point, BLACKLIST, CONFIG, HISTORY, LAST_SLOPE_CHANGE, SLOPE_CHANGES};
@@ -18,7 +18,7 @@ pub(crate) fn time_limits_check(time: u64) -> Result<(), ContractError> {
 }
 
 /// Checks that the sender is the xASTRO token.
-pub(crate) fn xastro_token_check(deps: Deps<TerraQuery>, sender: Addr) -> Result<(), ContractError> {
+pub(crate) fn xastro_token_check(deps: Deps, sender: Addr) -> Result<(), ContractError> {
     let config = CONFIG.load(deps.storage)?;
     if sender != config.deposit_token_addr {
         Err(ContractError::Unauthorized {})
@@ -28,7 +28,7 @@ pub(crate) fn xastro_token_check(deps: Deps<TerraQuery>, sender: Addr) -> Result
 }
 
 /// Checks if the blacklist contains a specific address.
-pub(crate) fn blacklist_check(deps: Deps<TerraQuery>, addr: &Addr) -> Result<(), ContractError> {
+pub(crate) fn blacklist_check(deps: Deps, addr: &Addr) -> Result<(), ContractError> {
     let blacklist = BLACKLIST.load(deps.storage)?;
     if blacklist.contains(addr) {
         Err(ContractError::AddressBlacklisted(addr.to_string()))
@@ -68,7 +68,7 @@ pub(crate) fn fetch_last_checkpoint(
     deps: Deps,
     addr: &Addr,
     period_key: u64,
-) -> StdResult<Option<Pair<Point>>> {
+) -> StdResult<Option<Record<Point>>> {
     HISTORY
         .prefix(addr.clone())
         .range(
@@ -77,6 +77,10 @@ pub(crate) fn fetch_last_checkpoint(
             Some(Bound::inclusive(period_key)),
             Order::Descending,
         )
+        .map(|k| {
+            let (a, b) = k.unwrap();
+            Ok((a.to_cw_bytes().into(), b))
+        })
         .next()
         .transpose()
 }
@@ -126,7 +130,7 @@ pub(crate) fn schedule_slope_change(deps: DepsMut, slope: Uint128, period: u64) 
 }
 
 /// Helper function for deserialization.
-pub(crate) fn deserialize_pair(pair: StdResult<Pair<Uint128>>) -> StdResult<(u64, Uint128)> {
+pub(crate) fn deserialize_pair(pair: StdResult<Record<Uint128>>) -> StdResult<(u64, Uint128)> {
     let (period_serialized, change) = pair?;
     let period_bytes: [u8; 8] = period_serialized
         .try_into()
@@ -147,13 +151,17 @@ pub(crate) fn fetch_slope_changes(
             Some(Bound::inclusive(period)),
             Order::Ascending,
         )
+        .map(|k| {
+            let (a, b) = k.unwrap();
+            Ok((a.to_cw_bytes().into(), b))
+        })
         .map(deserialize_pair)
         .collect()
 }
 
 /// Bulk validation and conversion between [`String`] -> [`Addr`] for an array of addresses.
 /// If any address is invalid, the function returns [`StdError`].
-pub(crate) fn validate_addresses(deps: Deps<TerraQuery>, addresses: &[String]) -> StdResult<Vec<Addr>> {
+pub(crate) fn validate_addresses(deps: Deps, addresses: &[String]) -> StdResult<Vec<Addr>> {
     addresses
         .iter()
         .map(|addr| addr_validate_to_lower(deps.api, addr))

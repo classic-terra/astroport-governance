@@ -2,7 +2,7 @@ use std::convert::TryInto;
 
 use astroport::asset::{pair_info_by_pool};
 use astroport::querier::query_pair_info;
-use classic_bindings::TerraQuery;
+
 use cosmwasm_std::{Addr, Deps, Order, StdError, StdResult, Storage, Uint128};
 use cw_storage_plus::{Bound};
 
@@ -49,7 +49,7 @@ pub(crate) enum VotedPoolInfoResult {
 /// * pool's pair type is not in blocked list,
 /// * any of pair's token is not listed in blocked tokens list.
 pub(crate) fn filter_pools(
-    deps: Deps<TerraQuery>,
+    deps: Deps,
     generator_addr: &Addr,
     factory_addr: &Addr,
     pools: Vec<(Addr, Uint128)>,
