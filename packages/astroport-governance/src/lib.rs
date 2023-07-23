@@ -2,7 +2,6 @@ pub mod assembly;
 pub mod asset;
 pub mod builder_unlock;
 pub mod escrow_fee_distributor;
-pub mod generator_controller;
 pub mod querier;
 pub mod utils;
 pub mod voting_escrow;
