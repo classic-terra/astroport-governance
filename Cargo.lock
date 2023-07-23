@@ -108,39 +108,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "astroport-factory"
-version = "1.0.0-fix1"
-source = "git+https://github.com/classic-terra/astroport-core.git?branch=terra_classic_invictus#7a3fd73f5cb7aa2ffd71c85cc4ffa0a710215f03"
-dependencies = [
- "astroport",
- "classic-bindings 0.1.1",
- "cosmwasm-std",
- "cw-storage-plus",
- "cw2",
- "itertools",
- "protobuf",
- "schemars",
- "serde",
- "thiserror",
-]
-
-[[package]]
-name = "astroport-generator"
-version = "1.1.0"
-source = "git+https://github.com/classic-terra/astroport-core.git?branch=terra_classic_invictus#7a3fd73f5cb7aa2ffd71c85cc4ffa0a710215f03"
-dependencies = [
- "astroport",
- "classic-bindings 0.1.1",
- "cosmwasm-std",
- "cw-storage-plus",
- "cw2",
- "cw20",
- "schemars",
- "serde",
- "thiserror",
-]
-
-[[package]]
 name = "astroport-governance"
 version = "1.0.0"
 dependencies = [
@@ -151,25 +118,6 @@ dependencies = [
  "schemars",
  "serde",
  "uint",
-]
-
-[[package]]
-name = "astroport-pair"
-version = "1.0.0"
-source = "git+https://github.com/classic-terra/astroport-core.git?branch=terra_classic_invictus#7a3fd73f5cb7aa2ffd71c85cc4ffa0a710215f03"
-dependencies = [
- "astroport",
- "classic-bindings 0.2.0",
- "classic-rust",
- "cosmwasm-std",
- "cw-storage-plus",
- "cw2",
- "cw20",
- "integer-sqrt",
- "protobuf",
- "schemars",
- "serde",
- "thiserror",
 ]
 
 [[package]]
@@ -1151,33 +1099,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "generator-controller"
-version = "1.0.0"
-dependencies = [
- "anyhow",
- "astroport",
- "astroport-factory",
- "astroport-generator",
- "astroport-governance",
- "astroport-pair",
- "astroport-staking",
- "astroport-token",
- "classic-bindings 0.1.1",
- "cosmwasm-schema",
- "cosmwasm-std",
- "cw-multi-test",
- "cw-storage-plus",
- "cw2",
- "cw20",
- "itertools",
- "proptest",
- "schemars",
- "serde",
- "thiserror",
- "voting-escrow",
-]
-
-[[package]]
 name = "generic-array"
 version = "0.14.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1440,15 +1361,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a5bbe824c507c5da5956355e86a746d82e0e1464f65d862cc5e71da70e94b2c"
 dependencies = [
  "cfg-if",
-]
-
-[[package]]
-name = "integer-sqrt"
-version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "276ec31bcb4a9ee45f58bec6f9ec700ae4cf4f4f8f2fa7e06cb406bd5ffdd770"
-dependencies = [
- "num-traits",
 ]
 
 [[package]]
